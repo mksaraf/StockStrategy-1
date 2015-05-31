@@ -27,12 +27,13 @@ def database_init(holdingHistory,currentHolding,earningTable,startdate,amount):
     'stockid char(6) not null, '
     'buydate date not null, '
     'buyprice float not null, '
+    'currentprice float not null, '
     'amount float not null'
     ')')
     cursor.execute(sql)
 
     sql = "create table if not exists " + earningTable + ('('
-    'id int unsigned auto_increment primary key,'
+    'id int unsigned auto_increment primary key, '
     'tradedate date not null, '
     'amount float not null'
     ')')
@@ -42,8 +43,7 @@ def database_init(holdingHistory,currentHolding,earningTable,startdate,amount):
     sql = "select * from " + currentHolding + " order by buydate"
     cursor.execute(sql)
     if cursor.rowcount <= 0:
-        sql = 'insert into ' + currentHolding + '(stockid,buydate,buyprice,amount) values("000000","' + startdate + '",1,' + str(amount) + ')'
-        print sql        
+        sql = 'insert into ' + currentHolding + '(stockid,buydate,buyprice,currentprice,amount) values("000000","' + startdate + '",1,1,' + str(amount) + ')'
         cursor.execute(sql)
     
     conn.commit()
@@ -111,8 +111,9 @@ def tableArrange(items, newStocklist, currentHolding, holdingHistory, num, trade
     
     # 2.add new data into current holding table
     # 2.1 adjust the new stock list, problem may caused by 1.1.1 (can't sell stock)
-    sql = "select amount from " + currentHolding
+    sql = "select stockid,amount from " + currentHolding
     cursor.execute(sql)
+    stocks = cursor.fetchall()
     rnum = cursor.rowcount - 1 + len(newStocklist) - num
     if rnum > 0:
         del newStocklist[-rnum:]
@@ -122,10 +123,7 @@ def tableArrange(items, newStocklist, currentHolding, holdingHistory, num, trade
         pass
     else:
         # 2.2.1 get the cash account
-        sql = "select amount from " + currentHolding + " where stockid='000000'"
-        cursor.execute(sql)
-        data = cursor.fetchall()
-        amount_rest = data[0][0]
+        amount_rest = stocks[0][1]
         
         # 2.2.2 decide the invest amount for each new stock
         amount_each = amount_rest/items[0]
@@ -138,15 +136,46 @@ def tableArrange(items, newStocklist, currentHolding, holdingHistory, num, trade
             data = cursor_ud.fetchall()
             if data == ():
                 continue
-            sql = "insert into " + currentHolding + "(stockid, buydate, buyprice, amount) values(%s,%s,%s,%s)"
-            cursor.execute(sql, (stock,str(tradedate),data[0][0],amount_each))
+            sql = "insert into " + currentHolding + "(stockid, buydate, buyprice, currentprice, amount) values(%s,%s,%s,%s,%s)"
+            cursor.execute(sql, (stock,str(tradedate),data[0][0],data[0][0],amount_each))
             sql = "update " + currentHolding + " set amount=amount-" + str(amount_each) + " where stockid='000000'"
             cursor.execute(sql)
             conn.commit()
     
+    
+    # 3. update the current price of each holding stock
+    for stock in stocks[1:]:
+        sql = "select close from t" + stock[0] + " where tradedate='" + str(tradedate) + "'"
+        cursor_ud.execute(sql)
+        data = cursor_ud.fetchall()
+        if data == ():
+            continue
+        else:
+            sql = "update " + currentHolding + " set currentprice=" + str(data[0][0]) + " where stockid=" + stock[0]
+            cursor.execute(sql)
+            conn.commit()
     
     conn.commit()
     cursor.close()
     conn.close()
     cursor_ud.close()
     conn_ud.close()
+    
+    
+def earningTable(currentHolding, earningTable, tradedate):
+    conn = MySQLdb.connect(host="localhost",user="root",passwd="root",db="strategyDatabase")
+    cursor = conn.cursor()
+    
+    sql = "select buyprice,currentprice,amount from " + currentHolding
+    cursor.execute(sql)
+    stocks = cursor.fetchall()
+    cmv = stocks[0][2]
+    for stock in stocks[1:]:
+        cmv += stock[1]*stock[2]/stock[0]
+    
+    sql = "insert into " + earningTable + "(tradedate, amount) values('" + str(tradedate) + "'," + str(cmv) + ")"
+    cursor.execute(sql)
+
+    conn.commit()
+    cursor.close()
+    conn.close()

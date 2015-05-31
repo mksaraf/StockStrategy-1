@@ -13,7 +13,7 @@ import datetime
 def startdateGet(tradedate,earningTable):
     conn=MySQLdb.connect(host="localhost",user="root",passwd="root",db="strategyDatabase")
     cursor = conn.cursor()
-    sql = "select * from " + earningTable + " limit 1"
+    sql = "select * from " + earningTable + " order by tradedate desc limit 1"
     cursor.execute(sql)
     data = cursor.fetchall()
     if cursor.rowcount <= 0:

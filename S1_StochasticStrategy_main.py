@@ -25,11 +25,12 @@ def mainProcess():
     
     # 2.decide the start date to complement the data
     #today = datetime.datetime.today().date()
-    today = datetime.date(2015,1,20)    
+    today = datetime.date(2015,2,20)    
     tradedate = ss.startdateGet(tradedate,earningTable)
     
     # 3.run the strategy for each trading day
     while tradedate <= today:
+        print tradedate
         subProcess(currentHoldingTable, holdingHistoryTable, earningTable, num, tradedate, amount)
         tradedate += datetime.timedelta(1)
 
@@ -47,6 +48,6 @@ def subProcess(currentHoldingTable, holdingHistoryTable, earningTable, num, trad
     di.tableArrange(items, newStocklist, currentHoldingTable, holdingHistoryTable, num, tradedate)
     
     # 3.3 generate earning table
-    
+    di.earningTable(currentHoldingTable, earningTable, tradedate)
     
 mainProcess()
