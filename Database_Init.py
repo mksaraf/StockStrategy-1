@@ -35,7 +35,8 @@ def database_init(holdingHistory,currentHolding,earningTable,startdate,amount):
     sql = "create table if not exists " + earningTable + ('('
     'id int unsigned auto_increment primary key, '
     'tradedate date not null, '
-    'amount float not null'
+    'amount float not null, '
+    'quantity int not null'
     ')')
     cursor.execute(sql)
     
@@ -83,6 +84,8 @@ def tableArrange(items, newStocklist, currentHolding, holdingHistory, num, trade
             newdata.append(datum)
             
         data = newdata
+        # renew the sets
+        sets = str(tuple([datum[0] for datum in data]))
 
         
         # 1.1.2 if no valid data, no following move actions
@@ -130,6 +133,7 @@ def tableArrange(items, newStocklist, currentHolding, holdingHistory, num, trade
         
         # 2.2.3 insert data
         #conn.select_db('updateDatabase')
+        reduceamount = 0
         for stock in newStocklist:
             sql = "select close from t" + stock + " where tradedate='" + str(tradedate) + "'"
             cursor_ud.execute(sql)
@@ -138,12 +142,17 @@ def tableArrange(items, newStocklist, currentHolding, holdingHistory, num, trade
                 continue
             sql = "insert into " + currentHolding + "(stockid, buydate, buyprice, currentprice, amount) values(%s,%s,%s,%s,%s)"
             cursor.execute(sql, (stock,str(tradedate),data[0][0],data[0][0],amount_each))
-            sql = "update " + currentHolding + " set amount=amount-" + str(amount_each) + " where stockid='000000'"
-            cursor.execute(sql)
-            conn.commit()
+            reduceamount += amount_each
+        sql = "update " + currentHolding + " set amount=amount-" + str(reduceamount) + " where stockid='000000'"
+        cursor.execute(sql)
+        conn.commit()
     
     
     # 3. update the current price of each holding stock
+    sql = "select stockid,amount from " + currentHolding
+    cursor.execute(sql)
+    stocks = cursor.fetchall()
+    
     for stock in stocks[1:]:
         sql = "select close from t" + stock[0] + " where tradedate='" + str(tradedate) + "'"
         cursor_ud.execute(sql)
@@ -173,7 +182,7 @@ def earningTable(currentHolding, earningTable, tradedate):
     for stock in stocks[1:]:
         cmv += stock[1]*stock[2]/stock[0]
     
-    sql = "insert into " + earningTable + "(tradedate, amount) values('" + str(tradedate) + "'," + str(cmv) + ")"
+    sql = "insert into " + earningTable + "(tradedate, amount, quantity) values('" + str(tradedate) + "'," + str(cmv) + "," + str(cursor.rowcount-1) + ")"
     cursor.execute(sql)
 
     conn.commit()
