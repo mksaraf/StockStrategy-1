@@ -64,6 +64,8 @@ def tableArrange(items, newStocklist, currentHolding, holdingHistory, num, trade
     else:
         # 1.1 copy data
         sets = str(tuple(items[1]))
+        if sets[-2] == ',':
+            sets = sets[:-2]+sets[-1]
         sql = "select stockid,buydate,buyprice,amount from " + currentHolding + " where stockid in " + sets
         cursor.execute(sql)
         data = cursor.fetchall()
@@ -86,6 +88,8 @@ def tableArrange(items, newStocklist, currentHolding, holdingHistory, num, trade
         data = newdata
         # renew the sets
         sets = str(tuple([datum[0] for datum in data]))
+        if sets[-2] == ',':
+            sets = sets[:-2]+sets[-1]
 
         
         # 1.1.2 if no valid data, no following move actions

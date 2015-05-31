@@ -39,8 +39,14 @@ def checkCurrent(currentHoldingTable,num):
     if cursor.rowcount <= 1:   # empty table
         newStocklist = (num,[])
     else:
-        stocklist = [datum[1] for datum in data]
-        newStocklist = (num - len(data[1]) + len(data[1]), stocklist)
+        #stocklist = [datum[1] for datum in data]
+        stocklist = [];        
+        for datum in data:
+            rate = datum[4]/datum[3]
+            if rate > 1.05 or rate < 0.9:
+                stocklist.append(datum[1])
+                
+        newStocklist = (num - len(data) + len(stocklist), stocklist)
     
     cursor.close()
     conn.close()
