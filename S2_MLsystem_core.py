@@ -10,6 +10,7 @@ Created on Sat Jun 13 09:52:05 2015
 import MySQLdb
 import random as rd
 import datetime
+import os
 
 def startdateGet(tradedate,earningTable):
     conn=MySQLdb.connect(host="localhost",user="root",passwd="root",db="strategyDatabase")
@@ -44,7 +45,7 @@ def checkCurrent(currentHoldingTable,num):
         stocklist = [];        
         for datum in data:
             rate = datum[4]/datum[3]
-            if rate > 1.05 or rate < 0.9:
+            if rate > 1.20 or rate < 0.9:
                 stocklist.append(datum[1])
                 
         newStocklist = (num - len(data) + len(stocklist), stocklist)
@@ -59,13 +60,21 @@ def strategy_main(n):
     cursor = conn.cursor()
     sql = "select * from " + "StockInfoList"
     cursor.execute(sql)
-    data = cursor.fetchall();
+    data = cursor.fetchall()
     stocklist = [datum[1] for datum in data]
     conn.close()
     return strategy_core(stocklist,n)
 
 
 def strategy_core(stocklist,n):
+    
+    conn=MySQLdb.connect(host="localhost",user="root",passwd="root",db="updateDatabase")
+    cursor = conn.cursor()
+    for stock in stocklist:
+        sql = "select * from t" + stock
+        cursor.execute(sql)
+        data = cursor.fetchall()
+    
     loc = rd.sample(xrange(len(stocklist)),n)
     return [stocklist[i] for i in loc]
     

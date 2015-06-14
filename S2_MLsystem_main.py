@@ -9,6 +9,7 @@ Created on Sat Jun 13 09:49:34 2015
 import datetime
 import Database_Init as di
 import S2_MLsystem_core as mls
+import os
 
 def mainProcess():
     # 0.configuration
@@ -28,7 +29,11 @@ def mainProcess():
     today = datetime.date(2015,2,20)    
     tradedate = mls.startdateGet(tradedate,earningTable)
     
-    # 3.run the strategy for each trading day
+    # 3. create the temporary variable directory
+    if ~os.path.isdir('s2_mls'):
+        os.mkdir(r's2_mls')
+    
+    # 4.run the strategy for each trading day
     while tradedate <= today:
         print tradedate
         subProcess(currentHoldingTable, holdingHistoryTable, earningTable, num, tradedate, amount)
@@ -37,17 +42,17 @@ def mainProcess():
 
 
 def subProcess(currentHoldingTable, holdingHistoryTable, earningTable, num, tradedate, amount):
-    # 3.1 check the currentHolding table to decide whether to make changes
+    # 4.1 check the currentHolding table to decide whether to make changes
     items = mls.checkCurrent(currentHoldingTable,num)    #item = (int, list)
     if items[0] == 0: # no changes in current portfolio
         newStocklist = []
     else:   # new portfolio
         newStocklist = mls.strategy_main(items[0])
     
-    # 3.2 make change to the tables
+    # 4.2 make change to the tables
     di.tableArrange(items, newStocklist, currentHoldingTable, holdingHistoryTable, num, tradedate)
     
-    # 3.3 generate earning table
+    # 4.3 generate earning table
     di.earningTable(currentHoldingTable, earningTable, tradedate)
     
 mainProcess()
