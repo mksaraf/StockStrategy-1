@@ -20,6 +20,10 @@ def movsum(values,window):
     sma = np.convolve(values, weights, 'valid')
     return sma
 
+def movcost(amount,vol,weight,window):
+    sma = movsum(amount,window)/movsum(vol/weight,window)
+    return sma
+
 def movprofit(cost,vol,weight,amount,window):
     cumvol = movsum(vol/weight,window)
     cumamount = movsum(amount,window)
@@ -42,6 +46,7 @@ conn_h = MySQLdb.connect(host="localhost",user="root",passwd="root",db="historic
 cursor_h = conn_h.cursor()
 conn_c = MySQLdb.connect(host="localhost",user="root",passwd="root",db="updateDatabase")
 cursor_c = conn_c.cursor()
+
 for stock in stocklist[0:1]:
     sql = "select * from t" + stock + " order by tradedate asc"
     cursor_h.execute(sql)
@@ -68,12 +73,14 @@ for stock in stocklist[0:1]:
     f, axarr = plt.subplots(2, sharex=True)
     
     # moving average of cost price
+    
+    
     axarr[0].plot(x,cost,'.-')
-    axarr[0].plot(x[4:],movavg(cost,5))
-    axarr[0].plot(x[9:],movavg(cost,10))
-    axarr[0].plot(x[19:],movavg(cost,20))
-    axarr[0].plot(x[29:],movavg(cost,30))
-    axarr[0].plot(x[59:],movavg(cost,60))
+    axarr[0].plot(x[4:],movcost(amount,vol,weight,5))
+    axarr[0].plot(x[9:],movcost(amount,vol,weight,10))
+    axarr[0].plot(x[19:],movcost(amount,vol,weight,20))
+    axarr[0].plot(x[29:],movcost(amount,vol,weight,30))
+    axarr[0].plot(x[59:],movcost(amount,vol,weight,60))
     
     '''
     # accumulate trading cash
@@ -112,7 +119,7 @@ for stock in stocklist[0:1]:
     axarr[1].plot(x[29:],v4/max(v5)*max(price))
     axarr[1].plot(x[59:],v5/max(v5)*max(price))
     '''
-    '''
+    
     # accumulate field curve
     pro1 = movprofit(cost,vol,weight,amount,5)
     pro2 = movprofit(cost,vol,weight,amount,10)
@@ -124,16 +131,28 @@ for stock in stocklist[0:1]:
     axarr[1].plot(x[20:],pro3)
     axarr[1].plot(x[30:],pro4)
     axarr[1].plot(x[60:],pro5)
-    '''
     
+    slen = len(pro4)
+    t1 = np.sign(pro2[-slen:] - pro1[-slen:])
+    t2 = np.sign(pro3[-slen:] - pro2[-slen:])
+    t3 = np.sign(pro4 - pro3[-slen:])
+    
+    t = t1+t2+t3
+    tt = t[:-2]-t[2:]
+    xx = [i for i,a in enumerate(tt) if a == 6]
+    axarr[1].plot(xx,np.repeat(0,len(xx)),'o')
+    
+    '''
     cumvol = vol/weight
     cumvol = np.cumsum(vol)
     yie = cumvol[:-1]*cost[1:]-np.cumsum(amount[:-1])
     axarr[1].plot(x[1:],yie)
+    '''
     
     plt.show()
     
 
+    
 # close database
 cursor_h.close()
 conn_h.close()
